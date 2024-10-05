@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { auth } from '../Config/Firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { useNavigate } from 'react-router-dom'; // Import useNavigate
+import { useNavigate } from 'react-router-dom';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -9,11 +9,11 @@ const Login = () => {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   
-  const navigate = useNavigate(); // Move useNavigate to the top level
+  const navigate = useNavigate(); // For navigation
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setError(null); // Clear any previous errors
+    setError(null);
 
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
@@ -23,7 +23,7 @@ const Login = () => {
       navigate('/tasks'); // Navigate after login
     } catch (err) {
       console.error("Error logging in:", err);
-      setError(err.message); // Show error message
+      setError(err.message);
     }
   };
 
@@ -49,6 +49,12 @@ const Login = () => {
         />
         <button type="submit">Login</button>
       </form>
+      <p>
+        Don't have an account?{' '}
+        <span onClick={() => navigate('/signup')} className="navigate-signup">
+          Signup here
+        </span>
+      </p>
 
       <style jsx>{`
         .login-container {
@@ -95,6 +101,11 @@ const Login = () => {
         .success {
           color: green;
           text-align: center;
+        }
+        .navigate-signup {
+          color: blue;
+          cursor: pointer;
+          text-decoration: underline;
         }
       `}</style>
     </div>

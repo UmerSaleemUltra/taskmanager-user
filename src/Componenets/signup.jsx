@@ -74,6 +74,13 @@ const Signup = () => {
         <button type="submit">Sign Up</button>
       </form>
 
+      <p>
+        Don't have an account?{' '}
+        <span onClick={() => navigate('/login')} className="navigate-signup">
+          Signin here
+        </span>
+      </p>
+
       <style jsx>{`
         .signup-container {
           max-width: 400px;
@@ -119,6 +126,11 @@ const Signup = () => {
         .success {
           color: green;
           text-align: center;
+        }
+           .navigate-signup {
+          color: blue;
+          cursor: pointer;
+          text-decoration: underline;
         }
       `}</style>
     </div>
