@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getFirestore, collection, query, where, getDocs, updateDoc, doc } from 'firebase/firestore';
+import { getFirestore, collection, query, where, onSnapshot, doc, updateDoc } from 'firebase/firestore';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { ListItem, Paper, ListItemText, Button, CircularProgress, Typography } from '@mui/material';
 
@@ -12,31 +12,34 @@ const UserTasks = () => {
   const db = getFirestore();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       if (user) {
-        try {
-          const userQuery = query(collection(db, 'users'), where('email', '==', user.email));
-          const querySnapshot = await getDocs(userQuery);
-
-          if (!querySnapshot.empty) {
-            const fetchedUsers = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            setUsers(fetchedUsers);
-          } else {
-            setError('No user found.');
-          }
-        } catch (err) {
-          console.error('Error fetching user:', err);
+        // If the user is authenticated, set up Firestore listener
+        const userQuery = query(collection(db, 'users'), where('email', '==', user.email));
+        const unsubscribeFirestore = onSnapshot(userQuery, (querySnapshot) => {
+          const fetchedUsers = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          setUsers(fetchedUsers);
+          setLoading(false); // Data fetched, set loading to false
+        }, (error) => {
+          console.error('Error fetching user:', error);
           setError('Failed to load user data.');
-        } finally {
           setLoading(false);
-        }
+        });
+
+        // Cleanup the listener on unmount
+        return () => {
+          unsubscribeFirestore();
+        };
       } else {
         setError('You need to be logged in to see your tasks.');
         setLoading(false);
       }
     });
 
-    return () => unsubscribe();
+    // Cleanup the auth listener on unmount
+    return () => {
+      unsubscribeAuth();
+    };
   }, [auth, db]);
 
   const updateTaskStatus = async (userId) => {
@@ -45,12 +48,7 @@ const UserTasks = () => {
       const userDocRef = doc(db, 'users', userId);
       await updateDoc(userDocRef, { status: newStatus, task: '', dueDate: null }); // Clear the task and due date
 
-      // Update the users list to reflect the change
-      setUsers(prevUsers => 
-        prevUsers.map(user =>
-          user.id === userId ? { ...user, task: '', status: newStatus } : user
-        )
-      );
+      // No need to update the users state here; Firestore will trigger the onSnapshot listener
     } catch (error) {
       console.error('Error updating status:', error);
       setError('Failed to update task status.');
@@ -65,6 +63,9 @@ const UserTasks = () => {
     );
   }
 
+  // Filter out completed tasks
+  const activeUsers = users.filter(user => user.status !== 'Completed');
+
   return (
     <div className="task-manager">
       <Typography variant="h4" align="center">Your Tasks</Typography>
@@ -73,19 +74,23 @@ const UserTasks = () => {
           <Typography color="error" align="center">{error}</Typography>
         </div>
       )}
-      {!error && users.length === 0 ? (
-        <Typography align="center">No tasks assigned to you.</Typography>
+      {activeUsers.length === 0 ? (
+        <Typography align="center" color="error">All tasks are completed!</Typography>
       ) : (
         <div className="task-list">
-          {users.map(user => (
+          {activeUsers.map(user => (
             <ListItem key={user.id} component={Paper} elevation={1} sx={{ mb: 2 }}>
               <ListItemText
-                primary={`Name: ${user.names}`}
+                primary={`Name: ${user.names}`} // Show user name
                 secondary={
                   <Typography>
-                    <div>{`Task: ${user.task || 'No task assigned'}`}</div>
-                    <div>{`Status: ${user.status === 'Completed' ? 'Task Completed' : user.status || 'N/A'}`}</div>
-                    {user.status !== 'Completed' && (
+                    {user.task ? ( // Only show task if it exists
+                      <div>{`Task: ${user.task}`}</div>
+                    ) : (
+                      <div style={{ color: 'red' }}>No task assigned</div> // Indicate no task assigned
+                    )}
+                    {/* Only show button if task exists and is not completed */}
+                    {user.task && user.status !== 'Completed' && (
                       <Button 
                         variant="outlined" 
                         onClick={() => updateTaskStatus(user.id)} 
