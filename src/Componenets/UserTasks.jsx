@@ -11,6 +11,11 @@ const UserTasks = () => {
   const auth = getAuth();
   const db = getFirestore();
 
+
+
+
+  
+
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       if (user) {
@@ -55,6 +60,7 @@ const UserTasks = () => {
     }
   };
 
+
   if (loading) {
     return (
       <div className="loading">
@@ -74,36 +80,43 @@ const UserTasks = () => {
           <Typography color="error" align="center">{error}</Typography>
         </div>
       )}
+
+<Typography>{users.createdAt}</Typography>
+
       {activeUsers.length === 0 ? (
         <Typography align="center" color="error">All tasks are completed!</Typography>
       ) : (
         <div className="task-list">
-          {activeUsers.map(user => (
-            <ListItem key={user.id} component={Paper} elevation={1} sx={{ mb: 2 }}>
-              <ListItemText
-                primary={`Name: ${user.names}`} // Show user name
-                secondary={
-                  <Typography>
-                    {user.task ? ( // Only show task if it exists
-                      <div>{`Task: ${user.task}`}</div>
-                    ) : (
-                      <div style={{ color: 'red' }}>No task assigned</div> // Indicate no task assigned
-                    )}
-                    {/* Only show button if task exists and is not completed */}
-                    {user.task && user.status !== 'Completed' && (
-                      <Button 
-                        variant="outlined" 
-                        onClick={() => updateTaskStatus(user.id)} 
-                        sx={{ mt: 1 }}
-                      >
-                        Complete
-                      </Button>
-                    )}
-                  </Typography>
-                }
-              />
-            </ListItem>
-          ))}
+         {activeUsers.map(user => (
+  <ListItem key={user.id} component={Paper} elevation={1} sx={{ mb: 2 }}>
+    <ListItemText
+      primary={`Name: ${user.names}`} // Show user name
+      secondary={
+        <Typography>
+          {user.task ? ( // Only show task if it exists
+            <div>{`Task: ${user.task}`}</div>
+          ) : (
+            <div style={{ color: 'red' }}>No task assigned</div> // Indicate no task assigned
+          )}
+          {/* Display the createdAt field */}
+          <div>{`Created At: ${user.createdAt?.toDate().toLocaleString()}`}</div>
+
+          {/* Only show button if task exists and is not completed */}
+          {user.task && user.status !== 'Completed' && (
+            <Button 
+              variant="outlined" 
+              onClick={() => updateTaskStatus(user.id)} 
+              sx={{ mt: 1 }}
+            >
+              Complete
+            </Button>
+          )}
+        </Typography>
+      }
+    />
+  </ListItem>
+))}
+
         </div>
       )}
 
